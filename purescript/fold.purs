@@ -1,18 +1,9 @@
--- Proposed Purescript Solution for: https://github.com/josevalim/nested-data-structure-traversal
--- The easiest way to try out is just to paste the code into: https://try.purescript.org/
--- an old revision of the same idea is also accessible in the following gist: https://try.purescript.org/?gist=67cd65e052c6e5e57167871f392019d2
-
--- Pure solution (no mutability), Strongly Typed (try to mess around, eg, misspelling an attribute)
--- Nothing fancy (no optics), just the usual pure functional artillery (foldl, zipWith...) 
--- plus the convenience of extendable row types in Purescript. A seasoned Purescript dev may improve
--- on this, though...
-
 module Main where
 
 import Prelude
-import Data.Array (zipWith, length, (..), snoc)
 import Effect (Effect)
-import Data.Foldable (fold, foldl)
+import Data.Foldable (fold)
+import Data.Traversable (mapAccumL)
 
 import TryPureScript (h1, h2, p, text, render, code)
 
@@ -90,24 +81,29 @@ outputData = [
   }
 ]
 
--- This is the core logic: just the usual functional fold
+-- This is the core logic, using the mapAccumL function to traverse the outer and inner arrays
+-- while keeping track of any necessary state
 addPositions :: Array InputSection -> Array OutputSection
-addPositions inputSections = 
-    foldl addSectionPosition { sectionIndex: 1, lessonIndex: 1, acum: [] } inputSections # _.acum
+addPositions = _.value <<< mapAccumL step { sectionIndex: 1, lessonIndex: 1 }
   where
-    addSectionPosition { sectionIndex, lessonIndex, acum } sec =
+    step { sectionIndex, lessonIndex } sec =
       let
         lessonStartPos = if sec.reset_lesson_position then 1 else lessonIndex
-        lessonEndPos = lessonStartPos + length sec.lessons
-        addLessonPos l pos = { position: pos, name: l.name }
-        newLessons = zipWith addLessonPos sec.lessons $  lessonStartPos .. lessonEndPos 
-      in
-        { sectionIndex: sectionIndex + 1
-        , lessonIndex: lessonEndPos
-        , acum: snoc acum { position:sectionIndex
-                , title: sec.title
-                , reset_lesson_position: sec.reset_lesson_position
-                , lessons: newLessons }  }
+        addLessonPos position { name } = { accum: position + 1, value: { position, name } }
+        newLessons = mapAccumL addLessonPos lessonStartPos sec.lessons
+        lessonEndPos = newLessons.accum
+      in 
+        { accum:
+            { lessonIndex: lessonEndPos
+            , sectionIndex: sectionIndex + 1
+            }
+        , value:
+            { position:sectionIndex
+            , title: sec.title
+            , reset_lesson_position: sec.reset_lesson_position
+            , lessons: newLessons.value
+            }
+        }
 
 -- Code for presentation of results at: https://try.purescript.org 
 main :: Effect Unit
