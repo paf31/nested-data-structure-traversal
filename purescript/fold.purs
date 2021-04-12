@@ -1,3 +1,12 @@
+-- Proposed Purescript Solution for: https://github.com/josevalim/nested-data-structure-traversal
+-- The easiest way to try out is just to paste the code into: https://try.purescript.org/
+-- an old revision of the same idea is also accessible in the following gist: https://try.purescript.org/?gist=67cd65e052c6e5e57167871f392019d2
+
+-- Pure solution (no mutability), Strongly Typed (try to mess around, eg, misspelling an attribute)
+-- Nothing fancy (no optics), just the usual pure functional artillery (foldl, zipWith...) 
+-- plus the convenience of extendable row types in Purescript. A seasoned Purescript dev may improve
+-- on this, though...
+
 module Main where
 
 import Prelude
